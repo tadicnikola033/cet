@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
+import javax.swing.Timer;
 import komunikacija.Komunikacija;
 import model.User;
 import model.Poruka;
@@ -26,6 +27,7 @@ public class GlavnaForma extends javax.swing.JFrame {
     private List<Poruka> listaPoruka = new ArrayList<>();
     private List<Poruka> poslednje3 = new ArrayList<>();
     private List<Poruka> ostale = new ArrayList<>();
+    private Timer autoRefreshTimer;
 
     /**
      * Creates new form GlavnaForma
@@ -46,60 +48,36 @@ public class GlavnaForma extends javax.swing.JFrame {
         jScrollPane2.setBorder(border1);
         jScrollPane3.setBorder(border2);
         
-        // Add refresh button
-        javax.swing.JButton refreshButton = new javax.swing.JButton("Osvezi poruke");
-        refreshButton.addActionListener(e -> osveziInbox());
-        
-        // Add the refresh button to the layout programmatically
-        javax.swing.GroupLayout layout = (javax.swing.GroupLayout) getContentPane().getLayout();
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(39, 39, 39)
-                        .addComponent(jButtonPosalji))
-                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 234, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel2)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 206, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(58, 58, 58)
-                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(refreshButton))
-                .addContainerGap(59, Short.MAX_VALUE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(11, 11, 11)
-                .addComponent(jLabel1)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(28, 28, 28)
-                        .addComponent(jButtonPosalji)))
-                .addGap(22, 22, 22)
-                .addComponent(jLabel2)
-                .addGap(18, 18, 18)
-                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(refreshButton)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
         
         // Load initial messages
         osveziInbox();
+        
+        // Setup automatic refresh every 3 seconds
+        setupAutoRefresh();
     }
 
+    
+    private void setupAutoRefresh() {
+        // Create a timer that refreshes messages every 3 seconds (3000ms)
+        autoRefreshTimer = new Timer(3000, e -> {
+            try {
+                osveziInbox();
+            } catch (Exception ex) {
+                // If there's an error, don't stop the timer, just skip this refresh
+                System.err.println("Error refreshing messages: " + ex.getMessage());
+            }
+        });
+        autoRefreshTimer.start();
+    }
+    
+    // Clean up the timer when window is closed
+    @Override
+    public void dispose() {
+        if (autoRefreshTimer != null) {
+            autoRefreshTimer.stop();
+        }
+        super.dispose();
+    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -265,7 +243,7 @@ public class GlavnaForma extends javax.swing.JFrame {
             ServerskiOdgovor so = Komunikacija.getInstance().primiOdgovor();
             jTextAreaPoruka.setText("");
             JOptionPane.showMessageDialog(this, "Poruka poslata");
-            osveziInbox();
+            // Auto-refresh will update messages automatically
         } else {
             String primalac = (String) izabrani;
 
@@ -275,7 +253,7 @@ public class GlavnaForma extends javax.swing.JFrame {
             ServerskiOdgovor so2 = Komunikacija.getInstance().primiOdgovor();
             jTextAreaPoruka.setText("");
             JOptionPane.showMessageDialog(this, "Poruka poslata");
-            osveziInbox();
+            // Auto-refresh will update messages automatically
 
         } //else {
         //JOptionPane.showMessageDialog(this, "Nije poslato");
@@ -366,6 +344,7 @@ public class GlavnaForma extends javax.swing.JFrame {
     }
 
     private void osveziInbox() {
+        try {
         KlijentskiZahtev kz = new KlijentskiZahtev(Operacija.VRATI_PORUKE, ulogovani);
         Komunikacija.getInstance().posaljiZahtev(kz);
         ServerskiOdgovor so = Komunikacija.getInstance().primiOdgovor();
@@ -396,6 +375,10 @@ public class GlavnaForma extends javax.swing.JFrame {
         // Update the JList components with the formatted messages
         jListPoslednje3.setListData(l3.toArray(new String[0]));
         jListOstale.setListData(lo.toArray(new String[0]));
+        } catch (Exception ex) {
+            // Silently handle errors to avoid interrupting the auto-refresh
+            System.err.println("Error in osveziInbox: " + ex.getMessage());
+        }
     }
 
     private void prikaziCeluPoruku(int index, boolean fromLast3) {
