@@ -42,7 +42,7 @@ public class GlavnaForma extends javax.swing.JFrame {
         
         // Add title borders to the list boxes for better clarity
         javax.swing.border.TitledBorder border1 = javax.swing.BorderFactory.createTitledBorder("Poslednje 3 poruke");
-        javax.swing.border.TitledBorder border2 = javax.swing.BorderFactory.createTitledBorder("Sve ostale poruke");
+        javax.swing.border.TitledBorder border2 = javax.swing.BorderFactory.createTitledBorder("Sve primljene poruke");
         jScrollPane2.setBorder(border1);
         jScrollPane3.setBorder(border2);
         
@@ -382,7 +382,7 @@ public class GlavnaForma extends javax.swing.JFrame {
         }
         listaPoruka = sve;
         poslednje3 = sve.subList(0, Math.min(3, sve.size()));
-        ostale = sve.size() > 3 ? sve.subList(3, sve.size()) : Collections.emptyList();
+        ostale = new ArrayList<>(sve); // Show ALL messages in right box
 
         List<String> l3 = new ArrayList<>();
         for (Poruka p : poslednje3) {
