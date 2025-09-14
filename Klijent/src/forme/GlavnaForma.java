@@ -35,9 +35,69 @@ public class GlavnaForma extends javax.swing.JFrame {
         this.ulogovani = user;
         setLocationRelativeTo(null);
         popuniComboBox();
-        jListPoslednje3.setListData(poslednje3.toArray(new String[0]));
-        jListOstale.setListData(ostale.toArray(new String[0]));
-
+        
+        // Initialize empty lists
+        jListPoslednje3.setListData(new String[0]);
+        jListOstale.setListData(new String[0]);
+        
+        // Add title borders to the list boxes for better clarity
+        javax.swing.border.TitledBorder border1 = javax.swing.BorderFactory.createTitledBorder("Poslednje 3 poruke");
+        javax.swing.border.TitledBorder border2 = javax.swing.BorderFactory.createTitledBorder("Sve ostale poruke");
+        jScrollPane2.setBorder(border1);
+        jScrollPane3.setBorder(border2);
+        
+        // Add refresh button
+        javax.swing.JButton refreshButton = new javax.swing.JButton("Osvezi poruke");
+        refreshButton.addActionListener(e -> osveziInbox());
+        
+        // Add the refresh button to the layout programmatically
+        javax.swing.GroupLayout layout = (javax.swing.GroupLayout) getContentPane().getLayout();
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel1)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(39, 39, 39)
+                        .addComponent(jButtonPosalji))
+                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 234, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel2)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 206, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(58, 58, 58)
+                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(refreshButton))
+                .addContainerGap(59, Short.MAX_VALUE))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(11, 11, 11)
+                .addComponent(jLabel1)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(28, 28, 28)
+                        .addComponent(jButtonPosalji)))
+                .addGap(22, 22, 22)
+                .addComponent(jLabel2)
+                .addGap(18, 18, 18)
+                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(refreshButton)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        
+        // Load initial messages
+        osveziInbox();
     }
 
     /**
@@ -332,40 +392,47 @@ public class GlavnaForma extends javax.swing.JFrame {
         for (Poruka p : ostale) {
             lo.add(formatiranje(p));
         }
-
+        
+        // Update the JList components with the formatted messages
+        jListPoslednje3.setListData(l3.toArray(new String[0]));
+        jListOstale.setListData(lo.toArray(new String[0]));
     }
 
-    private void prikaziCeluPoruku(int index, boolean b) {
+    private void prikaziCeluPoruku(int index, boolean fromLast3) {
         if (index < 0 || listaPoruka.isEmpty()) {
             return;
         }
 
-        java.util.List<Poruka> poslednje3 = listaPoruka.subList(0, Math.min(3, listaPoruka.size()));
         Poruka p;
-        if (b) {
+        if (fromLast3) {
+            // Message from the "last 3" list (left box)
             if (index >= poslednje3.size()) {
                 return;
             }
             p = poslednje3.get(index);
         } else {
-            if (listaPoruka.size() <= 3) {
+            // Message from the "other messages" list (right box)
+            if (ostale.isEmpty() || index >= ostale.size()) {
                 return;
             }
-            int off = 3 + index;
-            if (off >= listaPoruka.size()) {
-                return;
-            }
-            p = listaPoruka.get(off);
+            p = ostale.get(index);
         }
-
+        
+        // Show the full message in a dialog
+        String fullMessage = "Od: " + (p.getPosiljalac() != null ? p.getPosiljalac().getIme() : "Nepoznat") + "\n" +
+                            "Za: " + (p.getPrimalac() == null ? "svima" : p.getPrimalac().getIme()) + "\n" +
+                            "Vreme: " + p.getVreme() + "\n\n" +
+                            "Poruka:\n" + p.getPoruka();
+        
+        JOptionPane.showMessageDialog(this, fullMessage, "Cela poruka", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private String formatiranje(Poruka p) {
-        String od = p.getPosiljalac() != null ? p.getPosiljalac().getIme() : null;
+        String od = p.getPosiljalac() != null ? p.getPosiljalac().getIme() : "Nepoznat";
         String kome = (p.getPrimalac() == null) ? "svima" : p.getPrimalac().getIme();
         String txt = p.getPoruka();
-        String kratko = txt.length() > 20 ? txt.substring(0, 20) + "…" : txt;
-        return "Od: " + od + " | Za: " + kome + " | " + kratko;
+        String kratko = txt.length() > 20 ? txt.substring(0, 17) + "..." : txt;
+        return od + " → " + kome + ": " + kratko;
     }
 
 }
